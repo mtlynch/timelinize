@@ -244,16 +244,16 @@ async function renderSingleConversation() {
 	$('#convo-container .chat-bubbles').replaceChildren();
 
 	await renderConversationChunk();
-	while (!_veryBeginning) {
-		await renderConversationChunk("older");
-	}
-
 	$('#convo-container').classList.remove('d-none');
 
 	// scroll to bottom, but don't allow it to trigger loading more
 	await forMediaToRender();
 	_preventScrollEvent = true;
 	$('.content-column').scrollTop = $('.content-column').scrollHeight;
+
+	while (!_veryBeginning) {
+		await renderConversationChunk("older");
+	}
 }
 
 async function forMediaToRender() {
@@ -280,7 +280,7 @@ async function renderConversationChunk(direction) {
 		}
 
 		const sort = direction == "newer" ? "ASC" : "DESC";
-		const limit = 50;
+		const limit = 500;
 
 		const params = {
 			data_text: messageSubstring(),
