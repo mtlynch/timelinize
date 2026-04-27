@@ -246,6 +246,11 @@ tlz.pageControllers = {
 			newEntitySelect($('#select-person'), 1, true);
 		},
 		async render() {
+			if (!tlz.map) {
+				$('.bottom-island')?.classList.add('d-none');
+				return;
+			}
+
 			await loadAndRenderMapData();
 		},
 		unload() {

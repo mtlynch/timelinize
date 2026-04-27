@@ -201,6 +201,11 @@ const tlz = {
 	// this will hold the connection to the server's real-time logger WebSocket and related state
 	loggerSocket: {},
 
+	// map startup can fail in browsers without usable WebGL support
+	map: null,
+	mapUnavailableReason: null,
+	pageUnloading: false,
+
 	// These intervals are cleared when the page freezes, and restarted when the page unfreezes.
 	// The values in this object are objects with this structure:
 	//   { set(), interval }
@@ -329,11 +334,27 @@ function initMapSingleton() {
 	const defaultMapboxToken = 'pk.eyJ1IjoiZHlhbmltIiwiYSI6ImNsYXNqcDVrYjF2OGwzcG1xaDB5YmlhZmQifQ.Y6QIKhjU0NeccKS6Rs8YqA';
 	mapboxgl.accessToken = tlz.settings?.application?.mapbox_api_key || defaultMapboxToken;
 
-	tlz.map = new mapboxgl.Map({
-		container: document.createElement('div'),
-		style: `mapbox://styles/mapbox/standard?optimized=true`,
-		antialias: true
-	});
+	tlz.mapUnavailableReason = null;
+
+	if (typeof mapboxgl.supported === 'function' && !mapboxgl.supported()) {
+		tlz.map = null;
+		tlz.mapUnavailableReason = new Error('Mapbox GL JS is not supported by this browser environment.');
+		console.warn('Map initialization skipped; map features disabled.', tlz.mapUnavailableReason);
+		return false;
+	}
+
+	try {
+		tlz.map = new mapboxgl.Map({
+			container: document.createElement('div'),
+			style: `mapbox://styles/mapbox/standard?optimized=true`,
+			antialias: true
+		});
+	} catch (err) {
+		tlz.map = null;
+		tlz.mapUnavailableReason = err;
+		console.warn('Map initialization failed; map features disabled.', err);
+		return false;
+	}
 	tlz.map._container.id = 'map'; // the container element we specified above in the Map constructor is stored at tlz.map._container
 	tlz.map.tl_navControl = new mapboxgl.NavigationControl();
 	tlz.map.tl_containers = new Map(); // JS map, not geo map
@@ -448,6 +469,49 @@ function initMapSingleton() {
 	// tlz.map.on('zoom', function() {
 	// 	console.debug('MAP ZOOM:', tlz.map.getZoom());
 	// });
+
+	return true;
+}
+
+function mapUnavailableMessage() {
+	if (tlz.mapUnavailableReason?.message?.includes('WebGL')) {
+		return 'Map unavailable: this browser could not initialize WebGL.';
+	}
+
+	return 'Map unavailable in this browser.';
+}
+
+function renderMapUnavailablePlaceholder(container, message) {
+	if (!(container instanceof Element)) {
+		return container;
+	}
+
+	let placeholder = $('.map-placeholder', container);
+	if (!placeholder) {
+		placeholder = document.createElement('div');
+		placeholder.classList.add('map-placeholder', 'd-flex', 'align-items-center', 'justify-content-center', 'bg-muted-lt', 'text-center', 'p-4');
+		container.replaceChildren(placeholder);
+	}
+
+	placeholder.innerText = message || mapUnavailableMessage();
+	placeholder.classList.remove('d-none');
+	container.classList.add('map-unavailable');
+
+	return container;
+}
+
+function renderUnavailableMaps(root = document) {
+	if (tlz.map || !root) {
+		return;
+	}
+
+	if (root instanceof Element && root.matches('.map-container')) {
+		renderMapUnavailablePlaceholder(root);
+	}
+
+	$$('.map-container', root).forEach(container => {
+		renderMapUnavailablePlaceholder(container);
+	});
 }
 
 
@@ -1607,6 +1671,10 @@ function itemContentElement(item, opts) {
 		// size the container because the map won't stretch it, it will only expand to fill space
 		container.classList.add('ratio-16x9');
 
+		if (!tlz.map) {
+			return renderMapUnavailablePlaceholder(container);
+		}
+
 		tlz.map.tl_containers.set(container, function() {
 			tlz.map.tl_addNavControl();
 			const marker = new mapboxgl.Marker().setLngLat([item.longitude, item.latitude]);
@@ -1673,6 +1741,11 @@ function miniDisplayLocations(items, options) {
 
 	const ratioElem = cloneTemplate('#map-container');
 	ratioElem.classList.add('ratio-16x9', 'rounded', 'overflow-hidden');
+
+	if (!tlz.map) {
+		minidisp.element = renderMapUnavailablePlaceholder(ratioElem);
+		return minidisp;
+	}
 
 	const mapRenderFn = function () {
 		tlz.map.tl_addNavControl();

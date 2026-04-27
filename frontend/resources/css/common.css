@@ -611,6 +611,12 @@ styles. But it took hours to figure them out!
 	display: flex;
 	flex: 1;
 }
+.map-container.map-unavailable {
+	min-height: 12rem;
+}
+.map-container.map-unavailable .map-placeholder {
+	flex: 1;
+}
 #map {
 	flex: 1;
 }

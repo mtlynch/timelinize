@@ -527,6 +527,10 @@ connectLog();
 
 // This intersection observer is intended for map placeholder elements only.
 tlz.mapIntersectionObs = new IntersectionObserver((entries, opts) => {
+	if (!tlz.map) {
+		return;
+	}
+
 	entries.forEach(entry => {
 		if (entry.isIntersecting) {
 			tlz.mapsInViewport.add(entry.target);
@@ -569,13 +573,17 @@ function getNearestMapPlaceholderElement(mouseX, mouseY) {
 }
 
 document.addEventListener('mousemove', event => {
-	if (tlz.mapsInViewport.size > 1) {
+	if (tlz.map && tlz.mapsInViewport.size > 1) {
 		const nearestElement = getNearestMapPlaceholderElement(event.clientX, event.clientY);
 		moveMapInto(nearestElement);
 	}
 });
 
 function moveMapInto(mapContainerElem) {
+	if (!tlz.map) {
+		return;
+	}
+
 	// no-op if there is nothing to move the map into, or if it's the same element
 	if (!mapContainerElem || mapContainerElem == tlz.nearestMapElem) {
 		return;

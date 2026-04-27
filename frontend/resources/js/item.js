@@ -161,17 +161,21 @@ async function itemPageMain() {
 		const mapElem = cloneTemplate('#map-container');
 		mapElem.classList.add('ratio-4x3');
 
-		const minimapRenderFn = function() {
-			const marker = new mapboxgl.Marker().setLngLat([item.longitude, item.latitude]);
-			tlz.map.dragRotate.disable();
-			tlz.map.tl_addMarker(marker);
-			tlz.map.flyTo({
-				center: [item.longitude, item.latitude],
-				zoom: 13
-			});
-		};
+		if (tlz.map) {
+			const minimapRenderFn = function() {
+				const marker = new mapboxgl.Marker().setLngLat([item.longitude, item.latitude]);
+				tlz.map.dragRotate.disable();
+				tlz.map.tl_addMarker(marker);
+				tlz.map.flyTo({
+					center: [item.longitude, item.latitude],
+					zoom: 13
+				});
+			};
 
-		tlz.map.tl_containers.set(mapElem, minimapRenderFn);
+			tlz.map.tl_containers.set(mapElem, minimapRenderFn);
+		} else {
+			renderMapUnavailablePlaceholder(mapElem);
+		}
 
 		$('#minimap-container').classList.remove('d-none');
 		$('#minimap-container').append(mapElem);

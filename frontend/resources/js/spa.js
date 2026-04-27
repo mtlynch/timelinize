@@ -5,10 +5,18 @@ const mutationObs = new MutationObserver(function(mutations) {
 			if (!(node instanceof HTMLElement)) continue; // skip text/whitespace nodes
 			
 			if (node.matches('.map-container')) {
-				tlz.mapIntersectionObs.observe(node);
+				if (tlz.map) {
+					tlz.mapIntersectionObs.observe(node);
+				} else {
+					renderMapUnavailablePlaceholder(node);
+				}
 			}
 			$$('.map-container', node).forEach(el => {
-				tlz.mapIntersectionObs.observe(el);
+				if (tlz.map) {
+					tlz.mapIntersectionObs.observe(el);
+				} else {
+					renderMapUnavailablePlaceholder(el);
+				}
 			});
 		}
 		// don't unobserve removedNodes, because the intersection observer
@@ -143,6 +151,7 @@ async function navigateSPA(addrBarDestination, scrollToTop) {
 
 			// replace page content
 			$('#page-content').innerHTML = data;
+			renderUnavailableMaps($('#page-content'));
 
 			// adjust page title
 			const newTitleEl = $('body title');
