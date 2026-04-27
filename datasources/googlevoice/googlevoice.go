@@ -73,7 +73,7 @@ func (fimp *FileImporter) FileImport(ctx context.Context, dirEntry timeline.DirE
 		if err != nil {
 			return err
 		}
-		if d.IsDir() {
+		if d.IsDir() || !isConversationFile(fpath) {
 			return nil
 		}
 
@@ -388,6 +388,15 @@ func isShortPhoneNum(s string) bool {
 		}
 	}
 	return true
+}
+
+func isConversationFile(filename string) bool {
+	switch strings.ToLower(path.Ext(filename)) {
+	case ".htm", ".html":
+		return true
+	default:
+		return false
+	}
 }
 
 // extractTextWithNewlines is like calling .Text(), but it
