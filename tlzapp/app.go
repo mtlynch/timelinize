@@ -448,7 +448,7 @@ func (app *App) serve() error {
 
 	// set up HTTP client and request with short timeout and context cancellation
 	client := &http.Client{Timeout: 1 * time.Second}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost:12002", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, app.adminURL(), nil)
 	if err != nil {
 		return err
 	}
@@ -478,8 +478,7 @@ func (app *App) serve() error {
 }
 
 func (app *App) serverRunning() bool {
-	// TODO: get URL from config?
-	req, err := http.NewRequestWithContext(app.ctx, http.MethodGet, "http://localhost:12002", nil)
+	req, err := http.NewRequestWithContext(app.ctx, http.MethodGet, app.adminURL(), nil)
 	if err != nil {
 		return false
 	}
@@ -490,6 +489,22 @@ func (app *App) serverRunning() bool {
 	}
 	resp.Body.Close()
 	return resp.Header.Get("Server") == "Timelinize"
+}
+
+func (app *App) adminURL() string {
+	host, port, err := net.SplitHostPort(app.cfg.listenAddr())
+	if err != nil {
+		return "http://localhost:12002"
+	}
+
+	switch host {
+	case "", "0.0.0.0":
+		host = "127.0.0.1"
+	case "::":
+		host = "::1"
+	}
+
+	return "http://" + net.JoinHostPort(host, port)
 }
 
 // openRepos opens all timeline repositories in the current configuration.
