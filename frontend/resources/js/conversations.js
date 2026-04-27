@@ -280,7 +280,7 @@ async function renderConversationChunk(direction) {
 		}
 
 		const sort = direction == "newer" ? "ASC" : "DESC";
-		const limit = 500;
+		const limit = 100;
 
 		const params = {
 			data_text: messageSubstring(),
