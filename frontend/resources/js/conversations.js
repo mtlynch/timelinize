@@ -12,6 +12,9 @@ var _preventScrollEvent = true;
 // of the entire conversation (i.e. no more messages to load in that direction)
 var _veryEnd = true, _veryBeginning = false;
 
+// used to cancel any in-flight full-conversation backfill when the user changes filters
+var _conversationBackfillRun = 0;
+
 async function conversationsPageMain() {
 	$('.tl-date-picker').append(newDatePicker({
 		passThru: {
@@ -234,6 +237,8 @@ async function renderConversations() {
 
 
 async function renderSingleConversation() {
+	const backfillRun = ++_conversationBackfillRun;
+
 	messages = [];
 	_veryBeginning = false;
 	_veryEnd = true;
@@ -251,9 +256,7 @@ async function renderSingleConversation() {
 	_preventScrollEvent = true;
 	$('.content-column').scrollTop = $('.content-column').scrollHeight;
 
-	while (!_veryBeginning) {
-		await renderConversationChunk("older");
-	}
+	void backfillConversation(backfillRun);
 }
 
 async function forMediaToRender() {
@@ -262,6 +265,13 @@ async function forMediaToRender() {
 			await new Promise(requestAnimationFrame);
 		}
 	}));
+}
+
+async function backfillConversation(runID) {
+	while (runID == _conversationBackfillRun && !_veryBeginning) {
+		await renderConversationChunk("older");
+		await new Promise(requestAnimationFrame);
+	}
 }
 
 async function renderConversationChunk(direction) {
@@ -407,6 +417,7 @@ on('click', '#convos-container .card-link', event => {
 // reset state when the filter changes, since we may or may not
 // still be at the end or beginning of the conversation
 on('change', '.filter', e => {
+	_conversationBackfillRun++;
 	_veryBeginning = false;
 	_veryEnd = false;
 });
