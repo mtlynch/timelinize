@@ -322,6 +322,14 @@ function unfreezePage(modal) {
 	}
 }
 
+window.addEventListener('beforeunload', () => {
+	tlz.pageUnloading = true;
+});
+
+window.addEventListener('pageshow', () => {
+	tlz.pageUnloading = false;
+});
+
 function connectLog() {
 	// this sentinel value is used to avoid overlapping setTimeouts, and thus
 	// extra calls to connectLog, by both onerror and onclose being invoked
@@ -476,6 +484,10 @@ function connectLog() {
 		}
 	};
 	function lostConnection(event) {
+		if (tlz.pageUnloading) {
+			return;
+		}
+
 		// don't repeat what has already been done for this connection failure
 		if (tlz.loggerSocket.retrying) {
 			return;
