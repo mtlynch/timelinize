@@ -22,6 +22,19 @@
         then pkgs.go_1_25
         else pkgs.go;
       buildGoModule = pkgs.buildGoModule.override {inherit go;};
+      sourceRoot = toString ./.;
+      src = lib.cleanSourceWith {
+        src = ./.;
+        filter = path: type: let
+          relPath = lib.removePrefix (sourceRoot + "/") (toString path);
+        in
+          !(
+            relPath == "flake.nix"
+            || relPath == "flake.lock"
+            || relPath == "result"
+            || lib.hasPrefix "reference/" relPath
+          );
+      };
 
       runtimeTools = [
         pkgs.ffmpeg
@@ -32,7 +45,7 @@
       timelinize = buildGoModule {
         pname = "timelinize";
         version = "0.0.0";
-        src = lib.cleanSource ./.;
+        inherit src;
         vendorHash = "sha256-p33MPNpAP1iBUJq4kMzwvLQ0IEx2I6weVZWTP/BHN8U=";
         subPackages = ["."];
 
