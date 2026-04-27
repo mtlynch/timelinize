@@ -12,6 +12,9 @@ var _preventScrollEvent = true;
 // of the entire conversation (i.e. no more messages to load in that direction)
 var _veryEnd = true, _veryBeginning = false;
 
+// single-conversation mode should render the full conversation rather than a rolling segment
+var _loadEntireConversation = false;
+
 async function conversationsPageMain() {
 	$('.tl-date-picker').append(newDatePicker({
 		passThru: {
@@ -142,6 +145,8 @@ async function renderConversationsPage() {
 
 
 async function renderConversations() {
+	_loadEntireConversation = false;
+
 	$('#convos-container').classList.remove('d-none');
 	$('#convo-container').classList.add('d-none');
 	$('#showing-info').classList.remove('d-none');
@@ -234,12 +239,20 @@ async function renderConversations() {
 
 
 async function renderSingleConversation() {
+	messages = [];
+	_veryBeginning = false;
+	_veryEnd = true;
+	_loadEntireConversation = true;
+
 	$('#convos-container').classList.add('d-none');
 	$('#showing-info').classList.add('d-none');
 	$('.page-title').classList.add('mb-4');
 	$('#convo-container .chat-bubbles').replaceChildren();
 
 	await renderConversationChunk();
+	while (!_veryBeginning) {
+		await renderConversationChunk("older");
+	}
 
 	$('#convo-container').classList.remove('d-none');
 
@@ -295,13 +308,20 @@ async function renderConversationChunk(direction) {
 		
 		
 		// TODO: display some filler/information if there's no items
-		if (!results.items) {
+		if (!results.items || results.items.length == 0) {
 			if (direction == "newer") {
 				_veryEnd = true;
 			} else if (direction == "older") {
 				_veryBeginning = true;
+			} else {
+				_veryBeginning = true;
+				_veryEnd = true;
 			}
 			return;
+		}
+
+		if (!direction) {
+			_veryEnd = true;
 		}
 
 		// Because of how the database query works, we have to query newer messages
@@ -344,7 +364,7 @@ async function renderConversationChunk(direction) {
 		// as we scroll indefinitely, clear out messages from memory and the DOM that
 		// are no longer visible or nearby in the opposite direction we're scrolling
 		const maxMessages = limit * 3;
-		if (messages.length > maxMessages && direction) {
+		if (!_loadEntireConversation && messages.length > maxMessages && direction) {
 			const messageElems = $$('#convo-container .chat-item');
 			if (direction == "older") {
 				// clear out newest messages
@@ -417,6 +437,7 @@ on('click', '#convos-container .card-link', event => {
 on('change', '.filter', e => {
 	_veryBeginning = false;
 	_veryEnd = false;
+	_loadEntireConversation = false;
 });
 
 // avoid resetting entire page state, all we need to do is go back to the list of
