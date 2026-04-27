@@ -12,9 +12,6 @@ var _preventScrollEvent = true;
 // of the entire conversation (i.e. no more messages to load in that direction)
 var _veryEnd = true, _veryBeginning = false;
 
-// single-conversation mode should render the full conversation rather than a rolling segment
-var _loadEntireConversation = false;
-
 async function conversationsPageMain() {
 	$('.tl-date-picker').append(newDatePicker({
 		passThru: {
@@ -145,8 +142,6 @@ async function renderConversationsPage() {
 
 
 async function renderConversations() {
-	_loadEntireConversation = false;
-
 	$('#convos-container').classList.remove('d-none');
 	$('#convo-container').classList.add('d-none');
 	$('#showing-info').classList.remove('d-none');
@@ -242,7 +237,6 @@ async function renderSingleConversation() {
 	messages = [];
 	_veryBeginning = false;
 	_veryEnd = true;
-	_loadEntireConversation = true;
 
 	$('#convos-container').classList.add('d-none');
 	$('#showing-info').classList.add('d-none');
@@ -361,28 +355,6 @@ async function renderConversationChunk(direction) {
 			}
 		}
 
-		// as we scroll indefinitely, clear out messages from memory and the DOM that
-		// are no longer visible or nearby in the opposite direction we're scrolling
-		const maxMessages = limit * 3;
-		if (!_loadEntireConversation && messages.length > maxMessages && direction) {
-			const messageElems = $$('#convo-container .chat-item');
-			if (direction == "older") {
-				// clear out newest messages
-				messages.splice(-limit);
-				for (let i = messageElems.length-limit; i < messageElems.length; i++) {
-					messageElems[i].remove();
-				}
-				_veryEnd = false;
-			} else {
-				// clear out oldest messages
-				messages.splice(0, limit);
-				for (let i = 0; i < limit; i++) {
-					messageElems[i].remove();
-				}
-				_veryBeginning = false;
-			}
-		}
-
 		// Safari does not support overflow-anchor: auto, which is not only supported by
 		// all other modern browsers, it is the DEFAULT in all other browsers. So we have
 		// this shim that we employ only on browsers that don't support it (Safari, cough).
@@ -437,7 +409,6 @@ on('click', '#convos-container .card-link', event => {
 on('change', '.filter', e => {
 	_veryBeginning = false;
 	_veryEnd = false;
-	_loadEntireConversation = false;
 });
 
 // avoid resetting entire page state, all we need to do is go back to the list of
