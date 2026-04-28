@@ -20,8 +20,61 @@ const entityTypes = {
 	`
 };
 
+const entityPageLogPrefix = '[entity-page]';
+
+function entityPageLog(message, context) {
+	if (context === undefined) {
+		console.info(entityPageLogPrefix, message);
+		return;
+	}
+	console.info(entityPageLogPrefix, message, context);
+}
+
+function entityPageTabDestination(tabName, repoID, rowID) {
+	switch (tabName) {
+		case 'attributes':
+			return `/entities/${repoID}/${rowID}`;
+		case 'items':
+			return `/items?entity=${rowID}`;
+		case 'map':
+			return `/map?entity=${rowID}`;
+		default:
+			return null;
+	}
+}
+
+function wireEntityPageTabs(repoID, rowID) {
+	const currentPath = currentURI();
+	const tabs = $$('#entity-page-tabs [data-entity-page-tab]');
+
+	entityPageLog('Wiring entity page tabs', {
+		repoID,
+		rowID,
+		currentPath,
+		tabCount: tabs.length
+	});
+
+	tabs.forEach(tab => {
+		const tabName = tab.dataset.entityPageTab;
+		const destination = entityPageTabDestination(tabName, repoID, rowID);
+
+		tab.dataset.debugSpa = 'entity-tab';
+		if (destination) {
+			tab.href = destination;
+		}
+
+		entityPageLog('Configured entity page tab', {
+			tab: tabName,
+			href: tab.getAttribute('href'),
+			destination
+		});
+	});
+}
+
 async function entityPageMain() {
 	const {repoID, rowID} = parseURIPath();
+
+	wireEntityPageTabs(repoID, rowID);
 
 	$('#merge-entity').dataset.entityIDMerge = rowID;
 
@@ -184,6 +237,28 @@ async function entityPageMain() {
 	};
 	$('#chart').chart.setOption(option);
 }
+
+on('click', '#entity-page-tabs [data-entity-page-tab]', e => {
+	const tab = e.target.closest('[data-entity-page-tab]');
+	const {repoID, rowID} = parseURIPath();
+	const tabName = tab.dataset.entityPageTab;
+	const destination = entityPageTabDestination(tabName, repoID, rowID);
+
+	entityPageLog('Entity page tab clicked', {
+		tab: tabName,
+		href: tab.getAttribute('href'),
+		destination,
+		currentPath: currentURI()
+	});
+
+	if (!destination) {
+		console.warn(`${entityPageLogPrefix} No destination configured for entity page tab`, {
+			tab: tabName,
+			repoID,
+			rowID
+		});
+	}
+}, true);
 
 
 // we have to specify the checkbox element specifically, otherwise we end up with double events firing (one on the checkbox, one on the span)
