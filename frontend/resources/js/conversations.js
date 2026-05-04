@@ -114,6 +114,17 @@ function messageSubstring() {
 	return $('#message-substring').value ? [$('#message-substring').value] : null;
 }
 
+function conversationHref(convo) {
+	const qs = filterToQueryString();
+	qs.set("entity", convo.entities.map((entity) => entity.id).join(','));
+	qs.set("only_entity", "true");
+	return `/conversations?${qs.toString()}`;
+}
+
+function isPlainPrimaryClick(event) {
+	return event.button == 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+}
+
 async function renderConversationsPage() {
 	// load the initial entities involved so they can be displayed in the selector, only if they aren't already
 	const qsEntities = queryParam("entity");
@@ -230,6 +241,7 @@ async function renderConversations() {
 
 		// attach the conversation info to the card so we can fill out the filter when clicked
 		elem.conversation = convo;
+		$('.card-link', elem).setAttribute('href', conversationHref(convo));
 		
 		$('#convos-container').append(elem);
 	}
@@ -400,6 +412,13 @@ async function renderConversationChunk(direction) {
 
 // update filters when convo card is clicked; the conversations page with the convo cards is basically a glorified filter control
 on('click', '#convos-container .card-link', event => {
+	if (!isPlainPrimaryClick(event)) {
+		event.stopImmediatePropagation();
+		return;
+	}
+	event.preventDefault();
+	event.stopImmediatePropagation();
+
 	const convoCard = event.target.closest('.convo-card');
 	const ts = $('.entity-input').tomselect;
 	ts.clear();

@@ -2681,14 +2681,14 @@ async function queryStringToFilter() {
 
 	// entity
 	if ($('.entity-input') && qs.get("entity")) {
-		const initialEntity = Number(qs.get("entity"))
+		const initialEntities = qs.get("entity").split(',').map(Number);
 		const entities = await app.SearchEntities({
 			repo: tlz.openRepos[0].instance_id,
-			row_id: [initialEntity]
+			row_id: initialEntities
 		});
-		if (entities?.length) {
-			$('.entity-input').tomselect.addOption(entities[0]);
-			$('.entity-input').tomselect.addItem(entities[0].id, true); // true = don't fire event (the updated filter gets submitted later)
+		for (const entity of entities || []) {
+			$('.entity-input').tomselect.addOption(entity);
+			$('.entity-input').tomselect.addItem(entity.id, true); // true = don't fire event (the updated filter gets submitted later)
 		}
 	}
 	if ($('#selected-entities-only') && qs.get("only_entity")) {
